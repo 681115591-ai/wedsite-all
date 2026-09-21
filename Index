@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>PRATCHAWIN | Interactive Portal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+
+        body {
+            background-color: #05050a;
+            color: #00ffcc;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Ambient Glow Background */
+        .bg-glow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0,255,204,0.15) 0%, rgba(255,0,127,0.1) 50%, rgba(0,0,0,0) 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Canvas สำหรับ Starfield Background Effect */
+        #space-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Page Container */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            min-height: 100vh;
+            z-index: 2;
+            transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.8s ease;
+        }
+
+        /* ---------------- PAGE 1: LANDING ---------------- */
+        #page-landing {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        /* Kinetic Interactive Typography */
+        .interactive-title {
+            display: flex;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .letter {
+            font-size: clamp(3rem, 8vw, 7rem);
+            font-weight: 900;
+            color: #00ffcc;
+            text-shadow: 0 0 20px #00ffcc, 0 0 40px rgba(0,255,204,0.5);
+            transition: transform 0.15s ease-out, color 0.3s;
+            display: inline-block;
+        }
+
+        .letter:hover {
+            color: #ff007f;
+            text-shadow: 0 0 20px #ff007f, 0 0 50px #ff007f;
+        }
+
+        .btn-portal {
+            margin-top: 50px;
+            padding: 16px 36px;
+            font-size: 1.1rem;
+            color: #00ffcc;
+            background: rgba(0, 255, 204, 0.05);
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 3px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-portal:hover {
+            background: #ff007f;
+            color: #ffffff;
+            border-color: #ff007f;
+            box-shadow: 0 0 30px rgba(255, 0, 127, 0.8);
+            transform: scale(1.05);
+        }
+
+        /* ---------------- PAGE 2: PORTAL HUB ---------------- */
+        #page-hub {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.1);
+            padding: 60px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        #page-hub.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+
+        .hub-title {
+            text-align: center;
+            font-size: 2.2rem;
+            letter-spacing: 5px;
+            margin-bottom: 10px;
+            color: #ffffff;
+            text-shadow: 0 0 10px #00ffcc;
+        }
+
+        .hub-subtitle {
+            text-align: center;
+            color: #8a99ad;
+            margin-bottom: 50px;
+            font-size: 0.95rem;
+        }
+
+        /* Glassmorphism Card Grid */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .cyber-card {
+            background: rgba(15, 20, 35, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .cyber-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, #00ffcc, #ff007f);
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .cyber-card:hover {
+            transform: translateY(-10px);
+            border-color: #ff007f;
+            box-shadow: 0 10px 30px rgba(255, 0, 127, 0.25);
+        }
+
+        .cyber-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .card-desc {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .card-btn {
+            display: block;
+            text-align: center;
+            padding: 12px;
+            background: transparent;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .card-btn:hover {
+            background: #00ffcc;
+            color: #05050a;
+            box-shadow: 0 0 15px #00ffcc;
+        }
+
+        /* Glitch Animation Transition Class */
+        .glitch-flash {
+            animation: glitch-anim 0.3s steps(2, start) infinite;
+        }
+
+        @keyframes glitch-anim {
+            0% { filter: invert(0); }
+            50% { filter: invert(1) hue-rotate(180deg); }
+            100% { filter: invert(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+    <canvas id="space-canvas"></canvas>
+
+    <!-- หน้าที่ 1: LANDING PAGE -->
+    <div id="page-landing" class="page">
+        <div class="interactive-title" id="title-container">
+            <!-- สร้างอักษรแยกทีละตัวด้วย JS -->
+        </div>
+        <button class="btn-portal" onclick="activatePortal()">[ CLICK TO ENTER THE PORTFOLIO PORTAL ]</button>
+    </div>
+
+    <!-- หน้าที่ 2: SHOWCASE PORTAL -->
+    <div id="page-hub" class="page">
+        <h1 class="hub-title">CYBER PORTFOLIO HUB</h1>
+        <p class="hub-subtitle">กริดรวบรวมระบบและเว็บไซต์ที่ได้รับการพัฒนาทั้งหมดเพื่อเข้ารับการประเมิน</p>
+
+        <div class="card-grid">
+            <!-- 1. BMI Calculator -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">⚖️</div>
+                        <h2 class="card-title">BMI Calculator</h2>
+                    </div>
+                    <p class="card-desc">เครื่องมือคำนวณดัชนีมวลกาย Interactive พร้อมวิเคราะห์ระดับสุขภาพเบื้องต้น</p>
+                </div>
+                <a href="https://681115591-ai.github.io/bmi-calculator/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+
+            <!-- 2. Thai Sports Hub -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">⚽</div>
+                        <h2 class="card-title">Thai Sports Hub</h2>
+                    </div>
+                    <p class="card-desc">ศูนย์รวมข้อมูลข่าวสารและกิจกรรมสปอร์ตไลฟ์สไตล์แบบครบวงจร</p>
+                </div>
+                <a href="https://681115591-ai.github.io/THai-sports-hub/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+
+            <!-- 3. Thai Sports Hub v2 -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">🏆</div>
+                        <h2 class="card-title">Thai Sports Hub (v2)</h2>
+                    </div>
+                    <p class="card-desc">แพลตฟอร์มคอนเทนต์และข่าวสารวงการกีฬาไทยฉบับปรับปรุงประสิทธิภาพ</p>
+                </div>
+                <a href="https://681115591-ai.github.io/THai-sport-shub/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+
+            <!-- 4. Krua Trakul Mai -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">🍳</div>
+                        <h2 class="card-title">Krua Trakul Mai</h2>
+                    </div>
+                    <p class="card-desc">เว็บแนะนำสูตรอาหารและเมนูประจำครัวตระกูลใหม่พร้อมคำแนะนำวิธีทำ</p>
+                </div>
+                <a href="https://681115591-ai.github.io/krua-trakul-mai/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+
+            <!-- 5. Game by Pum -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">🎮</div>
+                        <h2 class="card-title">Game by Pum</h2>
+                    </div>
+                    <p class="card-desc">มินิเกมความบันเทิงที่พัฒนาขึ้นเพื่อทดสอบทักษะและการตอบสนองของผู้ใช้</p>
+                </div>
+                <a href="https://681115591-ai.github.io/game-by-pum/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+
+            <!-- 6. PP Profile -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">👤</div>
+                        <h2 class="card-title">PP Profile</h2>
+                    </div>
+                    <p class="card-desc">หน้าพอร์ตโฟลิโอส่วนตัว นำเสนอข้อมูล ทักษะ และผลงานที่ผ่านมา</p>
+                </div>
+                <a href="https://681115591-ai.github.io/pp/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+
+            <!-- 7. Test Image Gallery -->
+            <div class="cyber-card">
+                <div>
+                    <div class="card-header">
+                        <div class="card-icon">🖼️</div>
+                        <h2 class="card-title">Test Image Gallery</h2>
+                    </div>
+                    <p class="card-desc">พื้นที่ทดลองระบบแสดงผล จัดเก็บ และประมวลผลอัลบั้มรูปภาพ</p>
+                </div>
+                <a href="https://681115591-ai.github.io/testimage/" target="_blank" class="card-btn">LAUNCH WEBSITE</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Kinetic Typography (อักษรขยับตามระยะห่างเคอร์เซอร์)
+        const nameText = "PRATCHAWIN";
+        const container = document.getElementById('title-container');
+
+        nameText.split('').forEach(char => {
+            const span = document.createElement('span');
+            span.className = 'letter';
+            span.innerText = char;
+            container.appendChild(span);
+        });
+
+        const letters = document.querySelectorAll('.letter');
+
+        document.addEventListener('mousemove', (e) => {
+            letters.forEach(letter => {
+                const rect = letter.getBoundingClientRect();
+                const letterX = rect.left + rect.width / 2;
+                const letterY = rect.top + rect.height / 2;
+
+                const dist = Math.hypot(e.clientX - letterX, e.clientY - letterY);
+                const maxDist = 200;
+
+                if (dist < maxDist) {
+                    const scale = 1 + (1 - dist / maxDist) * 0.4;
+                    const rotate = (1 - dist / maxDist) * 15 * (e.clientX > letterX ? 1 : -1);
+                    letter.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
+                } else {
+                    letter.style.transform = 'scale(1) rotate(0deg)';
+                }
+            });
+        });
+
+        // 2. Synthesized Cyber Sound Effect (Web Audio API)
+        function playSciFiSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {
+                console.log("Audio not supported or allowed yet.");
+            }
+        }
+
+        // 3. Portal Activation with Glitch Transition
+        function activatePortal() {
+            playSciFiSound();
+            document.body.classList.add('glitch-flash');
+
+            setTimeout(() => {
+                document.body.classList.remove('glitch-flash');
+                document.getElementById('page-landing').style.opacity = '0';
+                document.getElementById('page-landing').style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    document.getElementById('page-landing').style.display = 'none';
+                    document.getElementById('page-hub').classList.add('active');
+                }, 400);
+            }, 300);
+        }
+
+        // 4. Background Canvas Particle Effect
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for (let i = 0; i < 60; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2,
+                speedY: (Math.random() - 0.5) * 0.5,
+                opacity: Math.random()
+            });
+        }
+
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ffcc';
+
+            particles.forEach(p => {
+                ctx.globalAlpha = p.opacity;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                p.y += p.speedY;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+            });
+            requestAnimationFrame(drawParticles);
+        }
+        drawParticles();
+    </script>
+</body>
+</html>
